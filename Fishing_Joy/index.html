@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>捕鱼达人</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            background: #000;
+        }
+
+        #box {
+            width: 800px;
+            height: 600px;
+            margin: auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #canvas_bg {
+            background: url("img/game_bg_2_hd.jpg") no-repeat center;
+        }
+
+        #canvas_main {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+    </style>
+</head>
+<body>
+<div id="box">
+    <canvas id="canvas_bg" width="800" height="600">
+        您的浏览器不支持canvas，请提高浏览器版本或更换浏览器！
+    </canvas>
+    <canvas id="canvas_main" width="800" height="600">
+
+    </canvas>
+</div>
+<script src="js/source.js"></script>
+<script src="js/tool.js"></script>
+<script src="js/bottom.js"></script>
+<script src="js/cannon.js"></script>
+<script src="js/fish.js"></script>
+<script src="js/dieFish.js"></script>
+<script src="js/bullet.js"></script>
+<script>
+	loadImg(source, function (imgSources) {
+		var oC = document.getElementById("canvas_main"),
+			ctx = oC.getContext("2d"),
+			fish = "",
+			dieFish = "",
+			bottom = "",
+			cannon = "",
+			bullet = "",
+			fishArr = [],
+			dieFishArr = [],
+			bulletArr = [];
+
+		var cannonType = 1,
+			cannonAngle = 0;
+		oC.addEventListener("click", function (e) {
+			var oEvent = e || event;
+			var pointX = oEvent.pageX,
+				pointY = oEvent.pageY,
+				disX = 442 - pointX + getPositionAbsolute(oC).left,
+				disY = 566 - pointY;
+			cannonAngle = -Math.atan2(disX, disY);
+			//画子弹
+			bullet = new Bullet(ctx, {
+				"img": imgSources.bullet,
+				"type": cannonType,
+				"angle": cannonAngle - PI / 2
+			});
+			bulletArr.push(bullet);
+			//画大炮
+			cannon.opts = {
+				"img": imgSources["cannon" + cannonType],
+				"type": cannonType,
+				"angle": cannonAngle
+			};
+			cannon.draw(ctx, cannon.opts);
+		});
+		//画炮台
+		bottom = new Bottom(ctx, {
+			"img": imgSources.bottom,
+			"sx": 0,
+			"sy": 0,
+			"swidth": 765,
+			"sheight": 70,
+			"x": 15,
+			"y": 532,
+			"width": 765,
+			"height": 70
+		});
+		//画大炮
+		cannon = new Cannon(ctx, {
+			"img": imgSources["cannon" + cannonType],
+			"type": cannonType,
+			"angle": cannonAngle
+		});
+		//添加鱼
+		setInterval(function () {
+			var type = random(1, 6);
+			fish = new Fish(ctx, {
+				"img": imgSources["fish" + type],
+				"type": type
+			});
+			fishArr.push(fish);
+		}, 300);
+		//刷新画布
+		setInterval(function () {
+			ctx.clearRect(0, 0, 800, 600);
+			//碰撞检测
+			for (var j = 0; j < bulletArr.length; j++) {
+				if (bulletArr[j].positionY > 600 ||
+					bulletArr[j].positionY < 0 - bulletArr[j].h ||
+					bulletArr[j].positionX < 0 - bulletArr[j].w ||
+					bulletArr[j].positionX > 800) {
+					bulletArr.splice(j, 1);
+					j--;
+					continue;
+				}
+				for (var i = 0; i < fishArr.length; i++) {
+					if (fishArr[i].positionY > 600 ||
+						fishArr[i].positionY < 0 - fishArr[i].h ||
+						fishArr[i].positionX < 0 - fishArr[i].w ||
+						fishArr[i].positionX > 800) {
+						fishArr.splice(i, 1);
+						i--;
+						continue;
+					}
+					if (computeDis(fishArr[i].positionX, fishArr[i].positionY, fishArr[i].w, fishArr[i].h, bulletArr[j].positionX, bulletArr[j].positionY, bulletArr[j].w, bulletArr[j].h) < 30) {
+						dieFish = new DieFish(ctx, fishArr.splice(i, 1));
+						dieFishArr.push(dieFish);
+						bulletArr.splice(j, 1);
+						break;
+					}
+				}
+			}
+			//画鱼
+			for (var i = 0; i < fishArr.length; i++) {
+				fishArr[i].draw(ctx, fishArr[i].opts);
+			}
+			//画子弹
+			for (var i = 0; i < bulletArr.length; i++) {
+				bulletArr[i].draw(ctx, bulletArr[i].opts);
+			}
+			//画死鱼
+			for (var i = 0; i < dieFishArr.length; i++) {
+				dieFishArr[i].draw(ctx, dieFishArr[i].opts);
+			}
+			//画炮台
+			bottom.draw(ctx, bottom.opts);
+			//画大炮
+			cannon.opts = {
+				"img": imgSources["cannon" + cannonType],
+				"type": cannonType,
+				"angle": cannonAngle
+			};
+			cannon.draw(ctx, cannon.opts);
+		}, 150);
+	});
+</script>
+</body>
+</html>
