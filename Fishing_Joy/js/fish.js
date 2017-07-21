@@ -17,7 +17,7 @@ function Fish(ctx, opts) {
 	this.h = FISH_SIZE[opts.type].h;
 	this.positionX = 800 - FISH_SIZE[opts.type].w;
 	this.positionY = 300 - FISH_SIZE[opts.type].h / 2;
-	this.speed = random(10, 20);
+	this.speed = random(5, 10);
 	this.angle = d2r(random(0,360));
 	this.speedX = this.speed*Math.cos(this.angle);
 	this.speedY = this.speed*Math.sin(this.angle);
@@ -47,7 +47,4 @@ Fish.prototype.move = function (ctx, opts) {
 	}
 	_t.positionX += _t.speedX;
 	_t.positionY += _t.speedY;
-	if (_t.positionY > 600 || _t.positionY < 0-FISH_SIZE[opts.type].h || _t.positionX < 0-FISH_SIZE[opts.type].w || _t.positionX > 800) {
-
-	}
 }

@@ -11,8 +11,10 @@ var FISH_SIZE = [
 ];
 var PI = Math.PI;
 function DieFish(ctx, fish) {
-	this.opts = fish[0].opts;
+	fish = fish[0];
+	this.opts = fish.opts;
 	this.current = 4;
+	this.num = 0;
 	this.positionX =fish.positionX;
 	this.positionY =fish.positionY;
 	this.speedX = fish.speedX;
@@ -37,6 +39,7 @@ DieFish.prototype.draw = function (ctx, opts) {
 DieFish.prototype.move = function (ctx, opts) {
 	var _t = this;
 	_t.current++;
+	_t.num++;
 	if (_t.current >= 8) {
 		_t.current = 4;
 	}
