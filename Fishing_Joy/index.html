@@ -50,7 +50,17 @@
 <script src="js/fish.js"></script>
 <script src="js/dieFish.js"></script>
 <script src="js/bullet.js"></script>
+<script src="js/web.js"></script>
+<script src="js/coinAni.js"></script>
+<script src="js/energyBar.js"></script>
+<script src="js/score.js"></script>
 <script>
+	//大炮声音
+	var voiceCannon = document.createElement("audio");
+	voiceCannon.src = "snd/cannon.mp3";
+	var voiceCoin = document.createElement("audio");
+	voiceCoin.src = "snd/coin.wav";
+
 	loadImg(source, function (imgSources) {
 		var oC = document.getElementById("canvas_main"),
 			ctx = oC.getContext("2d"),
@@ -58,13 +68,23 @@
 			dieFish = "",
 			bottom = "",
 			cannon = "",
+			energyBar = "",
 			bullet = "",
+			web = "",
+			coinAni = "",
+			score = "",
+			scoreNum = 155455,
 			fishArr = [],
 			dieFishArr = [],
-			bulletArr = [];
+			bulletArr = [],
+			webArr = [],
+			coinAniArr = [],
+			sensitivity = 30,//碰撞灵敏度
+            dieFishSwingTimes = 5;//死鱼摆动次数
 
 		var cannonType = 1,
 			cannonAngle = 0;
+
 		oC.addEventListener("click", function (e) {
 			var oEvent = e || event;
 			var pointX = oEvent.pageX,
@@ -72,6 +92,42 @@
 				disX = 442 - pointX + getPositionAbsolute(oC).left,
 				disY = 566 - pointY;
 			cannonAngle = -Math.atan2(disX, disY);
+			//减小大炮
+			if(pointInPath(event,
+                    oC,
+                    {
+	                    startX:365,
+	                    startY:573,
+	                    extendX:36,
+	                    extendY:27
+                    }
+                )
+            ){
+				cannonType--;
+				cannonAngle = 0;
+				if(cannonType<=0){
+					cannonType = 6;
+                }
+                return false;
+            }
+            //增加大炮
+			if(pointInPath(event,
+					oC,
+					{
+						startX:485,
+						startY:573,
+						extendX:36,
+						extendY:27
+					}
+				)
+			){
+				cannonType++;
+				cannonAngle = 0;
+				if(cannonType>=7){
+					cannonType = 1;
+				}
+				return false;
+			}
 			//画子弹
 			bullet = new Bullet(ctx, {
 				"img": imgSources.bullet,
@@ -86,6 +142,9 @@
 				"angle": cannonAngle
 			};
 			cannon.draw(ctx, cannon.opts);
+			voiceCannon = document.createElement("audio");
+			voiceCannon.src = "snd/cannon.mp3";
+            voiceCannon.play();
 		});
 		//画炮台
 		bottom = new Bottom(ctx, {
@@ -105,6 +164,38 @@
 			"type": cannonType,
 			"angle": cannonAngle
 		});
+		//画大炮控制按钮
+		minusCannon = new Bottom(ctx, {
+	        "img": imgSources.bottom,
+	        "sx": 91,
+	        "sy": 76,
+	        "swidth": 36,
+	        "sheight": 27,
+	        "x": 365,
+	        "y": 573,
+	        "width": 36,
+	        "height": 27
+        });
+		addCannon = new Bottom(ctx, {
+	        "img": imgSources.bottom,
+	        "sx": 3,
+	        "sy": 76,
+	        "swidth": 36,
+	        "sheight": 27,
+	        "x": 485,
+	        "y": 573,
+	        "width": 36,
+	        "height": 27
+        });
+		//画能量条
+		energyBar = new EnergyBar(ctx, {
+			"img": imgSources["bottom"]
+		});
+		//画分值
+		score = new Score(ctx,{
+			"img":imgSources["number_black"],
+            "score":scoreNum
+        });
 		//添加鱼
 		setInterval(function () {
 			var type = random(1, 6);
@@ -136,10 +227,23 @@
 						i--;
 						continue;
 					}
-					if (computeDis(fishArr[i].positionX, fishArr[i].positionY, fishArr[i].w, fishArr[i].h, bulletArr[j].positionX, bulletArr[j].positionY, bulletArr[j].w, bulletArr[j].h) < 30) {
+					if (computeDis(fishArr[i].positionX, fishArr[i].positionY, fishArr[i].w, fishArr[i].h, bulletArr[j].positionX, bulletArr[j].positionY, bulletArr[j].w, bulletArr[j].h) < sensitivity) {
+						web = new Web(ctx,imgSources.web,fishArr[i],cannonType);
+						webArr.push(web);
+						if(web.type>3){
+							coinAni = new CoinAni(ctx,imgSources["coinAni2"],web);
+							scoreNum += 50;
+                        }else{
+							coinAni = new CoinAni(ctx,imgSources["coinAni1"],web);
+							scoreNum += 30;
+                        }
+						coinAniArr.push(coinAni);
 						dieFish = new DieFish(ctx, fishArr.splice(i, 1));
 						dieFishArr.push(dieFish);
 						bulletArr.splice(j, 1);
+						voiceCoin = document.createElement("audio");
+						voiceCoin.src = "snd/coin.wav";
+						voiceCoin.play();
 						break;
 					}
 				}
@@ -154,10 +258,36 @@
 			}
 			//画死鱼
 			for (var i = 0; i < dieFishArr.length; i++) {
+				if(dieFishArr[i].num>dieFishSwingTimes){
+					dieFishArr.splice(i, 1);
+					i--;
+					continue;
+                }
 				dieFishArr[i].draw(ctx, dieFishArr[i].opts);
+			}
+			//画渔网
+			for (var i = 0; i < webArr.length; i++) {
+				if(webArr[i].zoom<0.4){
+					webArr.splice(i, 1);
+					i--;
+					continue;
+				}
+				webArr[i].draw(ctx);
+			}
+			//画金币
+			for (var i = 0; i < coinAniArr.length; i++) {
+				if(coinAniArr[i].currentSpeed>coinAniArr[i].speed){
+					coinAniArr.splice(i, 1);
+					i--;
+					continue;
+				}
+				coinAniArr[i].draw(ctx);
 			}
 			//画炮台
 			bottom.draw(ctx, bottom.opts);
+			//画大炮控制按钮
+			minusCannon.draw(ctx, minusCannon.opts);
+			addCannon.draw(ctx, addCannon.opts);
 			//画大炮
 			cannon.opts = {
 				"img": imgSources["cannon" + cannonType],
@@ -165,7 +295,14 @@
 				"angle": cannonAngle
 			};
 			cannon.draw(ctx, cannon.opts);
-		}, 150);
+			//画能量条
+			energyBar.draw(ctx, scoreNum);
+			//画分值
+			score.draw(ctx, scoreNum);
+			if(scoreNum>=1000000){
+				scoreNum = 0;
+            }
+		}, 80);
 	});
 </script>
 </body>
